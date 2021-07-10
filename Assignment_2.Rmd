@@ -1,0 +1,183 @@
+---
+title: "Data Analytics: Methoden und Programmierung"
+subtitle: "Assignment 2: Modeling, Uncertainties and Feature Importance"
+author: "Themenfeld SoSe 2021 - Arbeitsgruppe: GENZEL KNOCHE LIU MOLITOR NAMAZI"
+date: "`r format(file.info(knitr::current_input(dir=FALSE))$atime, '%Y-%m-%d')`"
+output:
+  html_document:
+    keep_md: yes
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(ggplot2)
+library(knitr)
+library(reshape2)
+```
+# Custom Functions
+```{r}
+source("utils.R")
+```
+# Data
+```{r}
+bikes <- read.csv("Bike-Sharing-Dataset/day.csv", stringsAsFactors = FALSE)
+#bikes$days_since_2011 <- as.numeric(as.Date(bikes$dteday)-as.Date("2011-01-01"))
+bike.features.of.interest <- c("season", "holiday", "workingday", "weathersit", "temp", "hum", "windspeed", "days_since_2011", "cnt") # colnames(bike)[c(1,4,6,7,8,9,10,12)]
+
+bikes <- clean.bike.data(bikes)[, bike.features.of.interest]
+options(digits = 2)
+#datatable(bikes[1:50, c(bike.features.of.interest, "cnt")])
+kable(bikes[1:5, ])
+```
+
+Create a random subset of the data, which leaves a "hold out data set" for testing
+
+```{r}
+set.seed(123)
+nTrain <- round(nrow(bikes) / 2)
+ranRows <- sample(nrow(bikes), nTrain)
+
+train <- bikes[ranRows, ]
+test <- bikes[-ranRows, ]
+```
+
+# Data Summaries
+# 1 (2 points) Using dplyr (group_by() , summarise() ) and ggplot2:
+  - Compute the average bike rental counts as a function of
+```{r}
+#weathersit
+bikes %>% group_by(weathersit) %>% summarize(avg_rental = mean(cnt, na.rm = TRUE))
+#workingday
+bikes %>% group_by(workingday) %>% summarize(avg_rental = mean(cnt, na.rm = TRUE))
+#all combinations of weathersit and workingday
+bikes %>% group_by(workingday, weathersit) %>% summarize(avg_rental = mean(cnt, na.rm = TRUE))
+```
+
+# (2 points) Repeat the above using the function lm() only.
+```{r}
+#weathersit
+lm_weathersit <- lm(cnt ~ weathersit, bikes)
+summary(lm_weathersit) 
+
+#the intercept equals the average rental for weathersit=1
+#adding the other two coefficient to the intercept gives the average for weathersit 2 and 3 respectively
+
+lm_weathersit$coefficients[1] + lm_weathersit$coefficients[2]
+lm_weathersit$coefficients[1] + lm_weathersit$coefficients[3]
+
+
+#workingday
+
+lm_workingday <- lm(cnt ~ workingday, bikes)
+summary(lm_workingday)
+lm_workingday$coefficients[1] + abs(lm_workingday$coefficients[2])
+
+#all combinations of weathersit and workingday
+
+lm_work_weather <- lm(cnt ~ workingday:weathersit, bikes)
+summary(lm_work_weather)
+
+#intercept value is avg bike rentals for workingday=1 and weathersit=3
+#adding the coefficients gives the avg rentals for every combination of weather and workingday
+
+coeffs <- c(lm_work_weather$coefficients[2:6])
+lm_work_weather$coefficients[1] + coeffs
+
+```
+# 4 Standard Errors in Linear Regression
+```{r}
+#data(bike)
+
+mod <- lm(cnt ~ ., data = train, x = TRUE)
+lm_summary <- summary(mod)$coefficients
+
+lm_summary[, 't value'] <- abs(lm_summary[, 't value'])
+rownames(lm_summary) <- pretty_rownames(rownames(lm_summary))
+
+kable(lm_summary[, c('Estimate', 'Std. Error', 't value')], digits = 1, col.names = c('Weight', 'SE', "|t|"))
+```
+
+# 4.1 Tasks
+# 4.1.1
+```{r}
+#Prediction of Row 1
+predict(mod, test[1, ])
+#Prediction of Row 150
+predict(mod, test[150, ])
+```
+#4.1.2
+```{r}
+simCoefs <- function(data = bikes, nTrain, lm_summary, M = 500){
+  bikes$weathersit <- as.integer(bikes$weathersit)
+  coefs <- matrix(NA, ncol = nrow(lm_summary),nrow = M)
+  colnames(coefs) <- rownames(lm_summary)
+  for (i in 1:M){
+    df <- data[sample(nrow(data), nTrain), ]
+    fit <- lm(cnt ~ ., data = df)
+    input <- coef(fit)
+    coefs[i, ] <- input
+  }
+  return(coefs)
+}
+
+coefs <- simCoefs(data = bikes, lm_summary = lm_summary, nTrain = nTrain, 500)
+```
+
+
+```{r}
+visCoefs <- function(coefs, lm_summary){
+  m <- c()
+  s <- c()
+  for (i in 1:nrow(lm_summary)){
+    m[i] <- mean(coefs[, i])
+    s[i] <- sd(coefs[, i])
+  }
+  coefsdf <- as.data.frame(coefs)
+
+    for (col in 1:ncol(coefsdf)) {
+        hist(coefsdf[, col], main = names(coefsdf[col]), col = "yellow", xlab = names(coefsdf[col]))
+        abline(v = lm_summary[col], col = "red", lwd = 3)
+    }
+  return(list(mean = m, stdev = s))
+}
+
+ms <- visCoefs(coefs, lm_summary)
+```
+# 5 Permutation Importance
+# 5.1
+```{r}
+calc.rsq <- function(y, mod, dat = test){
+  rss <- sum(
+    (y - predict(mod, newdata = dat))^2, na.rm = TRUE
+  )
+  tss <- (nrow(dat) - 1) * var(y, na.rm = TRUE)
+  return(1 - rss / tss)
+}
+
+permImp <- function(mod, dat = test){
+  p <- ncol(dat)
+  impScores <- rep(NA, p - 1)
+  names(impScores) <- colnames(dat)[1:(p - 1)]
+  Y <- dat[, p]
+  Base.rsq <- calc.rsq(y = Y, mod = mod)
+  
+  for (i in 1:(p - 1)) {
+    dat.temp <- dat
+    dat.temp[, i] <- sample(dat[, i])
+    impScores[i] <- Base.rsq - calc.rsq(y = Y, mod = mod, dat = dat.temp)
+  }
+  
+  return(impScores)
+}
+
+set.seed(321)
+impScores <- permImp(mod, test)
+par(mar = c(4, 8, 4, 2))
+barplot(impScores, horiz = TRUE, col = "darkblue", xlab = "score", main = "permutation importance", las = 2)
+```
+
+
+
+
