@@ -1,6 +1,7 @@
 # load libraries
 library("ggplot2")
 library("viridis")
+library("viridisLite")
 
 genSubset <- function(dat, nTrain) {
   my.sub.ind <- sample(nrow(dat), nTrain)
