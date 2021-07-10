@@ -1,1 +1,2 @@
-#
+# Assignment-1-computational-statistics
+This assignment serves two purposes. First, it will train our modeling and data manipulation skills, in particular linear regression and summarizing data the `dplyr` way. Second, it reinforces our computational statistics (or: understanding statistics by simulation) competencies by comparing theoretical standard errors to those obtained by simulation. And as a bonus, we get to explore a cool data set and learn about *feature importance*.
