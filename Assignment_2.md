@@ -70,58 +70,54 @@ test <- bikes[-ranRows, ]
     # weathersit
     bikes %>%
       group_by(weathersit) %>%
-      summarize(avg_rental = mean(cnt, na.rm = TRUE))
+      summarize(avg_rental = mean(cnt, na.rm = TRUE)) %>%
+      kable()
     ```
     
-    ```
-    ## # A tibble: 3 x 2
-    ##   weathersit      avg_rental
-    ##   <fct>                <dbl>
-    ## 1 GOOD                 4877.
-    ## 2 MISTY                4036.
-    ## 3 RAIN/SNOW/STORM      1803.
-    ```
+    
+    
+    |weathersit      | avg_rental|
+    |:---------------|----------:|
+    |GOOD            |       4877|
+    |MISTY           |       4036|
+    |RAIN/SNOW/STORM |       1803|
     - `workingday`  
     
     ```r
     # workingday
     bikes %>%
       group_by(workingday) %>%
-      summarize(avg_rental = mean(cnt, na.rm = TRUE))
+      summarize(avg_rental = mean(cnt, na.rm = TRUE)) %>%
+      kable()
     ```
     
-    ```
-    ## # A tibble: 2 x 2
-    ##   workingday     avg_rental
-    ##   <fct>               <dbl>
-    ## 1 NO WORKING DAY      4330.
-    ## 2 WORKING DAY         4585.
-    ```
+    
+    
+    |workingday     | avg_rental|
+    |:--------------|----------:|
+    |NO WORKING DAY |       4330|
+    |WORKING DAY    |       4585|
     - all combinations of `weathersit` and `workingday`  
     
     ```r
     # all combinations of weathersit and workingday
     bikes %>%
       group_by(workingday, weathersit) %>%
-      summarize(avg_rental = mean(cnt, na.rm = TRUE))
-    ```
-    
-    ```
+      summarize(avg_rental = mean(cnt, na.rm = TRUE)) %>%
+      kable()
     ## `summarise()` has grouped output by 'workingday'. You can override using the `.groups` argument.
     ```
     
-    ```
-    ## # A tibble: 6 x 3
-    ## # Groups:   workingday [2]
-    ##   workingday     weathersit      avg_rental
-    ##   <fct>          <fct>                <dbl>
-    ## 1 NO WORKING DAY GOOD                 4587.
-    ## 2 NO WORKING DAY MISTY                3937.
-    ## 3 NO WORKING DAY RAIN/SNOW/STORM      1815.
-    ## 4 WORKING DAY    GOOD                 5024.
-    ## 5 WORKING DAY    MISTY                4075.
-    ## 6 WORKING DAY    RAIN/SNOW/STORM      1800.
-    ```
+    
+    
+    |workingday     |weathersit      | avg_rental|
+    |:--------------|:---------------|----------:|
+    |NO WORKING DAY |GOOD            |       4587|
+    |NO WORKING DAY |MISTY           |       3937|
+    |NO WORKING DAY |RAIN/SNOW/STORM |       1815|
+    |WORKING DAY    |GOOD            |       5024|
+    |WORKING DAY    |MISTY           |       4075|
+    |WORKING DAY    |RAIN/SNOW/STORM |       1800|
 2. (**2 points**) Repeat the above using the function `lm()` only.  
 
 ```r
@@ -157,22 +153,19 @@ summary(lm_weathersit)
 # adding the other two coefficient to the intercept gives the average
 # for weathersit 2 and 3 respectively
 
-lm_weathersit$coefficients[1] + lm_weathersit$coefficients[2]
+tmp_weathersit_2 <- lm_weathersit$coefficients[1] + lm_weathersit$coefficients[2]
+names(tmp_weathersit_2) <- "weathersit 2"
+tmp_weathersit_3 <- lm_weathersit$coefficients[1] + lm_weathersit$coefficients[3]
+names(tmp_weathersit_3) <- "weathersit 3"
+kable(c(tmp_weathersit_2, tmp_weathersit_3), col.names = "avg rentals")
 ```
 
-```
-## (Intercept) 
-##        4036
-```
 
-```r
-lm_weathersit$coefficients[1] + lm_weathersit$coefficients[3]
-```
 
-```
-## (Intercept) 
-##        1803
-```
+|             | avg rentals|
+|:------------|-----------:|
+|weathersit 2 |        4036|
+|weathersit 3 |        1803|
 
 ```r
 # workingday
@@ -202,13 +195,16 @@ summary(lm_workingday)
 ```
 
 ```r
-lm_workingday$coefficients[1] + abs(lm_workingday$coefficients[2])
+tmp_workingday <- lm_workingday$coefficients[1] + abs(lm_workingday$coefficients[2])
+names(tmp_workingday) <- "workingday"
+kable(tmp_workingday, col.names = "avg rentals")
 ```
 
-```
-## (Intercept) 
-##        4585
-```
+
+
+|           | avg rentals|
+|:----------|-----------:|
+|workingday |        4585|
 
 ```r
 # all combinations of weathersit and workingday
@@ -256,21 +252,18 @@ summary(lm_work_weather)
 # adding the coefficients gives the avg rentals for every combination of weather and workingday
 
 coeffs <- c(lm_work_weather$coefficients[2:6])
-lm_work_weather$coefficients[1] + coeffs
+kable(lm_work_weather$coefficients[1] + coeffs, col.names = "avg rentals")
 ```
 
-```
-##            workingdayNO WORKING DAY:weathersitGOOD 
-##                                               4587 
-##               workingdayWORKING DAY:weathersitGOOD 
-##                                               5024 
-##           workingdayNO WORKING DAY:weathersitMISTY 
-##                                               3937 
-##              workingdayWORKING DAY:weathersitMISTY 
-##                                               4075 
-## workingdayNO WORKING DAY:weathersitRAIN/SNOW/STORM 
-##                                               1815
-```
+
+
+|                                                   | avg rentals|
+|:--------------------------------------------------|-----------:|
+|workingdayNO WORKING DAY:weathersitGOOD            |        4587|
+|workingdayWORKING DAY:weathersitGOOD               |        5024|
+|workingdayNO WORKING DAY:weathersitMISTY           |        3937|
+|workingdayWORKING DAY:weathersitMISTY              |        4075|
+|workingdayNO WORKING DAY:weathersitRAIN/SNOW/STORM |        1815|
 # 4 Standard Errors in Linear Regression  
 In this example, we use the linear regression model to predict the number of rented bikes on a particular day, given weather and calendar information. For the interpretation, we examine the estimated regression weights. The features consist of numerical and categorical features. For each feature, the table shows the estimated weight, the standard error of the estimate (SE), and the absolute value of the t-statistic (|t|).  
 
@@ -320,29 +313,32 @@ coef_plot(mod) + scale_y_discrete("")
 |FALL   |NO HOLIDAY |WORKING DAY    |GOOD       | 14.4|  64|        28|             292|
 
 ```r
+rented_bikes_mx <- matrix(NA, 2, 2, dimnames = list(c("row 1", "row 150"), c("bikes", "SD")))
 #Prediction of Row 1
 rented_bikes_1 <- round(predict(mod, test[1, ]), 4)
+rented_bikes_mx[1, 1] <- names(rented_bikes_1)
+rented_bikes_mx[1, 2] <- rented_bikes_1
 #Prediction of Row 150
 rented_bikes_150 <- round(predict(mod, test[150, ]), 4)
-row_0 <- "SE" # workaround for col.names due to return format of predict()
-names(row_0) <- "Bikes"
-kable(c(row_0, rented_bikes_1, rented_bikes_150), col.names = "")
+rented_bikes_mx[2, 1] <- names(rented_bikes_150)
+rented_bikes_mx[2, 2] <- rented_bikes_150
+
+kable(rented_bikes_mx)
 ```
 
 
 
-|      |          |
-|:-----|:---------|
-|Bikes |SE        |
-|1     |1081.3942 |
-|293   |3641.658  |
-2. (**6 points**) The “standard errors” of the coefficients quantifiy the uncertainty of the estimated coefficients. Write two functions:  
+|        |bikes |SD        |
+|:-------|:-----|:---------|
+|row 1   |1     |1081.3942 |
+|row 150 |293   |3641.658  |
+2. (**6 points**) The “standard errors” of the coefficients quantify the uncertainty of the estimated coefficients. Write two functions:  
 
   - **simCoefs** simulates the process of repeatedly ($M=500$) fitting a linear model to random subsets of your data of size 366 and stores the estimated slopes in a matrix,  
     
     ```r
     simCoefs <- function(data = bikes, nTrain, lm_summary, M = 500){
-      bikes$weathersit <- as.integer(bikes$weathersit)
+      # data$weathersit <- as.integer(data$weathersit)
       coefs <- matrix(NA, ncol = nrow(lm_summary),nrow = M)
       colnames(coefs) <- rownames(lm_summary)
       for (i in 1:M) {
@@ -358,9 +354,7 @@ kable(c(row_0, rented_bikes_1, rented_bikes_150), col.names = "")
     
     ```r
     visCoefs <- function(coefs, lm_summary){
-      ms <- matrix(NA, ncol = ncol(coefs),nrow = 2)
-      colnames(ms) <- colnames(coefs)
-      rownames(ms) <- c("mean", "stdev")
+      ms <- matrix(NA, ncol = ncol(coefs), nrow = 2, dimnames = list(c("mean", "stdev"), colnames(coefs)))
       for (i in 1:ncol(coefs)) {
         ms[1, i] <- mean(coefs[, i])
         ms[2, i] <- sd(coefs[, i])
@@ -388,6 +382,7 @@ ms <- visCoefs(coefs, lm_summary)
 <img src="Assignment_2_files/figure-html/unnamed-chunk-3-1.png" width="33%" /><img src="Assignment_2_files/figure-html/unnamed-chunk-3-2.png" width="33%" /><img src="Assignment_2_files/figure-html/unnamed-chunk-3-3.png" width="33%" /><img src="Assignment_2_files/figure-html/unnamed-chunk-3-4.png" width="33%" /><img src="Assignment_2_files/figure-html/unnamed-chunk-3-5.png" width="33%" /><img src="Assignment_2_files/figure-html/unnamed-chunk-3-6.png" width="33%" /><img src="Assignment_2_files/figure-html/unnamed-chunk-3-7.png" width="33%" /><img src="Assignment_2_files/figure-html/unnamed-chunk-3-8.png" width="33%" /><img src="Assignment_2_files/figure-html/unnamed-chunk-3-9.png" width="33%" /><img src="Assignment_2_files/figure-html/unnamed-chunk-3-10.png" width="33%" /><img src="Assignment_2_files/figure-html/unnamed-chunk-3-11.png" width="33%" /><img src="Assignment_2_files/figure-html/unnamed-chunk-3-12.png" width="33%" />
 
 ```r
+# row.names can be turned on
 kable(ms, row.names = FALSE)
 ```
 
